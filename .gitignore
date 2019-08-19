@@ -1,0 +1,11 @@
+# Excluded files
+*.vscode
+*.DS_Store
+*.csv
+*.pyc
+
+# Excluded directories
+.idea/
+__pycache__/
+.ipynb_checkpoints/
+.model_checkpoints/
