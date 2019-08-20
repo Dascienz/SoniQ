@@ -22,11 +22,11 @@ checkpoint_dir = os.path.dirname(wdir, '.model_checkpoints')
 
 class Trainer:
 
-    def __init__(self, model, dy):
+    def __init__(self, model, environment, dy):
         self.dy = dy
         self.model = model
         self.keyboard = Keyboard()
-        self.environment = Environment()
+        self.environment = environment
         self.checkpoints = checkpoint_dir
         self.processor = ScreenshotProcessor(resize_x=80, resize_y=80)
     
@@ -34,31 +34,35 @@ class Trainer:
         if c == 0:
             self.keyboard.key_up('a')
             self.keyboard.key_down('d')
+            return
         if c == 1:
             self.keyboard.key_up('d')
             self.keyboard.key_down('a')
+            return
         if c == 2:
             self.keyboard.key_up('s')
             self.keyboard.key_down('m')
+            return
         if c == 3:
             self.keyboard.key_up('m')
             self.keyboard.key_down('s')
+            return
     
     def get_state(self, frames):
-        if not frames:
-            for i in range(4):
-                screen = Screenshot(self.dy).state_array()
-                screen = self.processor.transform(screen)
-                frames.append(screen)
-            score = Screenshot(self.dy).score()
+        if frames:
+            frames.pop(0)
+            screen = Screenshot(self.dy)
+            state, score = screen.state, screen.score
+            state = self.processor.transform(state)
+            frames.append(state)
             state = np.stack(frames, axis=2)
             return (state, score)
         else:
-            frames.pop(0)
-            screen = Screenshot(self.dy).state_array()
-            screen = self.processor.transform(screen)
-            frames.append(screen)
-            score = Screenshot(self.dy).score()
+            for _ in range(4):
+                state = Screenshot(self.dy).state
+                state = self.processor.transform(state)
+                frames.append(state)
+            score = Screenshot(self.dy).score
             state = np.stack(frames, axis=2)
             return (state, score)
 
@@ -85,35 +89,40 @@ class Trainer:
             else:
                 saver = tf.train.saver()
             #Q-reinforcement algorithm for training the network.
+            replay = deque()
             scores, losses = [], []
-            replay = deque() #replay memory
             time.sleep(0.25)
-            print("\n*----- GAME START -----*")
+
+            print()
+            print('*----- GAME START -----*')
+
             for e in range(episodes):
                 if e%100 == 0:
-                    saver.save(sess, os.path.join(checkpoint_dir, 'model_{}.ckpt'.format(episode)))
+                    saver.save(sess, os.path.join(checkpoint_dir, 'model_{}.ckpt'.format(e)))
+
                 count = 0
                 terminal = 0 
                 done = False 
                 frames = []
                 self.environment.load_state(slot=0)
-                print("\nEpisode: {}, Random %: {}".format(str(episode+1), str(100*epsilon)))
 
-                #We are in initial state S
+                print()
+                print('Episode: {}, Random %: {}'.format(str(e+1), str(100*epsilon)))
+
+                # We are in initial state S
                 state, score = self.get_state(frames)
                 while score < 0:
                     state, score = self.get_state(frames)
 
                 while not done: 
-                    #Run our Q function on S to get Q values for all possible actions.
-                    if (np.random.random() <= epsilon): #choose random action
+                    # Run our Q function on S to get Q values for all possible actions.
+                    if (np.random.random() <= epsilon): # choose random action
                         action = np.zeros((actions))
                         action[np.random.randint(0, 4)] = 1
                         action = np.argmax(action)
-                    else: #choose best action from Q(s,a) values
+                    else: # choose best action from Q(s,a) values
                         action, Qvals = sess.run([predict, readout], feed_dict={x: [state]}) # Q-values
                     self.act(action) #Take action.
-                    time.sleep(0.05)
 
                     #Observe new state and score.
                     new_state, new_score = self.get_states(frames)

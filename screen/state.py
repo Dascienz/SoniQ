@@ -23,6 +23,10 @@ class Screenshot:
 
     def __init__(self, dy):
         self.dy = dy
+        self.state = self._state()
+        self.score = self._score()
+        self.time = self._time()
+        self.ring = self._rings()
 
     def window(self, x, y, width, height, dy):
         image = CG.CGWindowListCreateImage(CG.CGRectMake(x, y+dy, width, height),
@@ -37,14 +41,14 @@ class Screenshot:
         X = X.reshape((height, bytesperrow//4, 4))
         return X[:, :, [2,1,0]][:, :width, :]
 
-    def state_array(self):
+    def _state(self):
         return self.window(x=401, 
                            y=130, 
                            width=634, 
                            height=445, 
                            dy=0)
 
-    def score_array(self):
+    def _score_array(self):
         X = self.window(x=434, 
                         y=142, 
                         width=190, 
@@ -58,7 +62,7 @@ class Screenshot:
         return X
 
     def is_gameover(self):
-        X = self.state_array()
+        X = self.state
         X = X[828 + self.dy:852 + self.dy, 226:250, :3]
         return (compare(X, GAMEOVER) <= 1065)
 
@@ -69,8 +73,8 @@ class Screenshot:
         else:
             return str('')
 
-    def score(self):
-        X = self.score_array()[2:48, 0:379, :3]
+    def _score(self):
+        X = self._score_array()[2:48, 0:379, :3]
         n1 = X[0+2:46, 348+4:379, :3]
         n2 = X[0+2:46, 316+4:347, :3]
         n3 = X[0+2:46, 284+4:315, :3]
@@ -86,8 +90,8 @@ class Screenshot:
         except ValueError:
             return -1
 
-    def time(self):
-        X = self.score_array()[66:112, 0:283, :3]
+    def _time(self):
+        X = self._score_array()[66:112, 0:283, :3]
         n1 = X[0+2:46, 252+4:283, :3]
         n2 = X[0+2:46, 220+4:251, :3]
         n3 = X[0+2:46, 156+4:187, :3]
@@ -99,8 +103,8 @@ class Screenshot:
         except ValueError:
             return -1
 
-    def rings(self):
-        X = self.score_array()[130:176, 0:283, :3]
+    def _rings(self):
+        X = self._score_array()[130:176, 0:283, :3]
         n1 = X[0+2:46, 252+4:283, :3]
         n2 = X[0+2:46, 220+4:251, :3]
         n3 = X[0+2:46, 188+4:219, :3]
