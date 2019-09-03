@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+
+  dgen-sdl:
+    build: "dgen-sdl/."
+    volumes:
+      - "./rom:/dgen-sdl/rom/"
+    container_name: ll_dgen_sdl
+
+volumes:
+  rom:
